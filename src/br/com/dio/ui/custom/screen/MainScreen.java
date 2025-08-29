@@ -2,7 +2,6 @@ package br.com.dio.ui.custom.screen;
 
 import br.com.dio.model.Space;
 import br.com.dio.service.BoardService;
-import br.com.dio.service.EventEnum;
 import br.com.dio.service.NotifierService;
 import br.com.dio.ui.custom.button.CheckGameStatusButton;
 import br.com.dio.ui.custom.button.FinishGameButton;
@@ -14,7 +13,6 @@ import br.com.dio.ui.custom.panel.SudokuSector;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import java.awt.Dimension;
 import java.util.ArrayList;
@@ -38,7 +36,7 @@ public class MainScreen {
     private JButton finishGameButton;
     private JButton resetButton;
 
-    public MainScreen(final Map<String, String> gameConfig) {
+    public MainScreen(final Map<String, Space> gameConfig) {
         this.boardService = new BoardService(gameConfig);
         this.notifierService = new NotifierService();
     }
@@ -46,18 +44,21 @@ public class MainScreen {
     public void buildMainScreen(){
         JPanel mainPanel = new MainPanel(dimension);
         JFrame mainFrame = new MainFrame(dimension, mainPanel);
+
         for (int r = 0; r < 9; r+=3) {
-            var endRow = r + 2;
+            int endRow = r + 2;
             for (int c = 0; c < 9; c+=3) {
-                var endCol = c + 2;
-                var spaces = getSpacesFromSector(boardService.getSpaces(), c, endCol, r, endRow);
+                int endCol = c + 2;
+                List<Space> spaces = getSpacesFromSector(boardService.getSpaces(), c, endCol, r, endRow);
                 JPanel sector = generateSection(spaces);
                 mainPanel.add(sector);
             }
         }
+
         addResetButton(mainPanel);
         addCheckGameStatusButton(mainPanel);
         addFinishGameButton(mainPanel);
+
         mainFrame.revalidate();
         mainFrame.repaint();
     }
@@ -88,8 +89,7 @@ public class MainScreen {
                 checkGameStatusButton.setEnabled(false);
                 finishGameButton.setEnabled(false);
             } else {
-                var message = "Seu jogo tem alguma inconsistência, ajuste e tente novamente";
-                showMessageDialog(null, message);
+                showMessageDialog(null, "Seu jogo tem alguma inconsistência, ajuste e tente novamente");
             }
         });
         mainPanel.add(finishGameButton);
@@ -97,34 +97,33 @@ public class MainScreen {
 
     private void addCheckGameStatusButton(final JPanel mainPanel) {
         checkGameStatusButton = new CheckGameStatusButton(e -> {
-            var hasErrors = boardService.hasErrors();
+            boolean hasErrors = boardService.hasErrors();
             var gameStatus = boardService.getStatus();
-            var message = switch (gameStatus){
+            String message = switch (gameStatus) {
                 case NON_STARTED -> "O jogo não foi iniciado";
-                case INCOMPLETE -> "O jogo está imcompleto";
+                case INCOMPLETE -> "O jogo está incompleto";
                 case COMPLETE -> "O jogo está completo";
             };
             message += hasErrors ? " e contém erros" : " e não contém erros";
             showMessageDialog(null, message);
         });
-        mainPanel.add(MainScreen.this.checkGameStatusButton);
+        mainPanel.add(checkGameStatusButton);
     }
 
     private void addResetButton(final JPanel mainPanel) {
         resetButton = new ResetButton(e ->{
-            var dialogResult = showConfirmDialog(
+            int dialogResult = showConfirmDialog(
                     null,
                     "Deseja realmente reiniciar o jogo?",
                     "Limpar o jogo",
                     YES_NO_OPTION,
                     QUESTION_MESSAGE
             );
-            if (dialogResult == 0){
+            if (dialogResult == YES_NO_OPTION){
                 boardService.reset();
                 notifierService.notify(CLEAR_SPACE);
             }
         });
         mainPanel.add(resetButton);
     }
-
 }
